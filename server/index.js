@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -7,9 +8,22 @@ const authRoutes = require('./routes');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configure CORS (allow all for now for easy local testing)
+// Configure CORS
+const allowedOrigins = process.env.CLIENT_URL
+    ? process.env.CLIENT_URL.split(',')
+    : ['*'];
+
 app.use(cors({
-    origin: '*',
+    origin: allowedOrigins.length === 1 && allowedOrigins[0] === '*'
+        ? '*'
+        : function (origin, callback) {
+            // Allow requests with no origin (mobile apps, curl, etc.)
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.indexOf(origin) !== -1) {
+                return callback(null, true);
+            }
+            return callback(new Error('Not allowed by CORS'));
+        },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -33,6 +47,7 @@ app.get(/(.*)/, (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
