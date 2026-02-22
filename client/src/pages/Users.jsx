@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config';
 
 export default function Users() {
     const { user } = useAuth();
@@ -17,8 +18,7 @@ export default function Users() {
 
     const fetchUsers = async () => {
         const token = localStorage.getItem('token');
-        const hostname = window.location.hostname;
-        const response = await fetch(`http://${hostname}:3001/api/users`, {
+        const response = await fetch(`${API_URL}/api/users`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -39,11 +39,10 @@ export default function Users() {
         }
 
         const token = localStorage.getItem('token');
-        const hostname = window.location.hostname;
 
         if (editUser) {
             // Update existing user
-            const response = await fetch(`http://${hostname}:3001/api/users/${editUser.id}`, {
+            const response = await fetch(`${API_URL}/api/users/${editUser.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -66,7 +65,7 @@ export default function Users() {
             }
         } else {
             // Create new user
-            const response = await fetch(`http://${hostname}:3001/api/register`, {
+            const response = await fetch(`${API_URL}/api/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

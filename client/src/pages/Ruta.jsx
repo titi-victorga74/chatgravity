@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_URL } from '../config';
 
 export default function Ruta({ cardId, cardName, onBack }) {
     const [options, setOptions] = useState([]);
@@ -13,8 +14,7 @@ export default function Ruta({ cardId, cardName, onBack }) {
 
     const fetchOptions = async () => {
         try {
-            const hostname = window.location.hostname;
-            const res = await fetch(`http://${hostname}:3001/api/taquera-options`);
+            const res = await fetch(`${API_URL}/api/taquera-options`);
             if (res.ok) setOptions(await res.json());
         } catch (err) {
             console.error(err);
@@ -23,8 +23,7 @@ export default function Ruta({ cardId, cardName, onBack }) {
 
     const fetchSavedItems = async () => {
         try {
-            const hostname = window.location.hostname;
-            const res = await fetch(`http://${hostname}:3001/api/ruta-items?cardId=${cardId}`);
+            const res = await fetch(`${API_URL}/api/ruta-items?cardId=${cardId}`);
             if (res.ok) setSavedItems(await res.json());
         } catch (err) {
             console.error(err);
@@ -34,8 +33,7 @@ export default function Ruta({ cardId, cardName, onBack }) {
     const handleSave = async () => {
         if (!selectedOption || !cardId || quantity < 1) return;
         try {
-            const hostname = window.location.hostname;
-            const res = await fetch(`http://${hostname}:3001/api/ruta-items`, {
+            const res = await fetch(`${API_URL}/api/ruta-items`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

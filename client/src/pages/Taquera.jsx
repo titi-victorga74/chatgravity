@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config';
 
 export default function Taquera({ cardId, cardName, onBack }) {
     const { user } = useAuth();
@@ -19,8 +20,7 @@ export default function Taquera({ cardId, cardName, onBack }) {
 
     const fetchTaqueraOptions = async () => {
         try {
-            const hostname = window.location.hostname;
-            const response = await fetch(`http://${hostname}:3001/api/taquera-options`);
+            const response = await fetch(`${API_URL}/api/taquera-options`);
             if (response.ok) {
                 const result = await response.json();
                 if (Array.isArray(result)) {
@@ -38,8 +38,7 @@ export default function Taquera({ cardId, cardName, onBack }) {
 
     const fetchSavedItems = async () => {
         try {
-            const hostname = window.location.hostname;
-            const response = await fetch(`http://${hostname}:3001/api/taquera-items?cardId=${cardId}`);
+            const response = await fetch(`${API_URL}/api/taquera-items?cardId=${cardId}`);
             if (response.ok) {
                 const result = await response.json();
                 if (Array.isArray(result)) {
@@ -59,8 +58,7 @@ export default function Taquera({ cardId, cardName, onBack }) {
         console.log(`[Taquera] Saving item "${selectedOption}" (Qty: ${quantity}) for CardID: ${cardId}`);
         if (selectedOption && quantity && cardId) {
             try {
-                const hostname = window.location.hostname;
-                const response = await fetch(`http://${hostname}:3001/api/taquera-items`, {
+                const response = await fetch(`${API_URL}/api/taquera-items`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -92,8 +90,7 @@ export default function Taquera({ cardId, cardName, onBack }) {
         if (!confirmModal.itemId) return;
 
         try {
-            const hostname = window.location.hostname;
-            const response = await fetch(`http://${hostname}:3001/api/taquera-items/${confirmModal.itemId}`, {
+            const response = await fetch(`${API_URL}/api/taquera-items/${confirmModal.itemId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'delivered' })

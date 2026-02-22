@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config';
 import Users from './Users';
 import Taquera from './Taquera';
 import Devoluciones from './Devoluciones';
@@ -46,8 +47,7 @@ export default function Dashboard() {
 
     const fetchRutaCounts = async () => {
         try {
-            const hostname = window.location.hostname;
-            const response = await fetch(`http://${hostname}:3001/api/ruta-counts`);
+            const response = await fetch(`${API_URL}/api/ruta-counts`);
             if (response.ok) {
                 const result = await response.json();
                 setRutaCounts(result);
@@ -59,9 +59,8 @@ export default function Dashboard() {
 
     const fetchDevolucionesCounts = async () => {
         try {
-            const hostname = window.location.hostname;
-            console.log(`[Dashboard] Fetching devoluciones counts from http://${hostname}:3001/api/devoluciones-counts`);
-            const response = await fetch(`http://${hostname}:3001/api/devoluciones-counts`);
+            console.log(`[Dashboard] Fetching devoluciones counts from ${API_URL}/api/devoluciones-counts`);
+            const response = await fetch(`${API_URL}/api/devoluciones-counts`);
             if (response.ok) {
                 const result = await response.json();
                 console.log("[Dashboard] Devoluciones counts received:", result);
@@ -76,9 +75,8 @@ export default function Dashboard() {
 
     const fetchTaqueraCounts = async () => {
         try {
-            const hostname = window.location.hostname;
-            console.log(`[Dashboard] Fetching taquera counts from http://${hostname}:3001/api/taquera-counts`);
-            const response = await fetch(`http://${hostname}:3001/api/taquera-counts`);
+            console.log(`[Dashboard] Fetching taquera counts from ${API_URL}/api/taquera-counts`);
+            const response = await fetch(`${API_URL}/api/taquera-counts`);
             if (response.ok) {
                 const result = await response.json();
                 console.log("[Dashboard] Taquera counts received:", result);
@@ -93,8 +91,7 @@ export default function Dashboard() {
 
     const fetchData = async () => {
         const token = localStorage.getItem('token');
-        const hostname = window.location.hostname;
-        const response = await fetch(`http://${hostname}:3001/api/data`, {
+        const response = await fetch(`${API_URL}/api/data`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -118,8 +115,7 @@ export default function Dashboard() {
     const handleAddData = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
-        const hostname = window.location.hostname;
-        await fetch(`http://${hostname}:3001/api/data`, {
+        await fetch(`${API_URL}/api/data`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -143,8 +139,7 @@ export default function Dashboard() {
         if (!confirm('Are you sure you want to delete this item?')) return;
 
         const token = localStorage.getItem('token');
-        const hostname = window.location.hostname;
-        const response = await fetch(`http://${hostname}:3001/api/data/${id}`, {
+        const response = await fetch(`${API_URL}/api/data/${id}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -161,9 +156,7 @@ export default function Dashboard() {
     const fetchTaqueraOptions = async () => {
         try {
             console.log("Fetching Taquera Options (No Auth)...");
-            // Use window.location.hostname to dynamically pick the correct IP/localhost that the browser is using
-            const hostname = window.location.hostname;
-            const url = `http://${hostname}:3001/api/taquera-options`;
+            const url = `${API_URL}/api/taquera-options`;
 
             console.log(`Fetching from: ${url}`);
             const response = await fetch(url); // No headers needed for public route
@@ -194,9 +187,8 @@ export default function Dashboard() {
 
             const loadItems = async () => {
                 try {
-                    const hostname = window.location.hostname;
                     console.log(`[Dashboard] Fetching items for card ID: ${selectedItem.id}`);
-                    const response = await fetch(`http://${hostname}:3001/api/card-items/${selectedItem.id}`);
+                    const response = await fetch(`${API_URL}/api/card-items/${selectedItem.id}`);
 
                     if (response.ok) {
                         const result = await response.json();
@@ -229,8 +221,7 @@ export default function Dashboard() {
     // Manual fetch function (hoisted/defined outside useEffect to be usable by handleAddCardItem)
     const fetchCardItems = async (cardId) => {
         try {
-            const hostname = window.location.hostname;
-            const response = await fetch(`http://${hostname}:3001/api/card-items/${cardId}`);
+            const response = await fetch(`${API_URL}/api/card-items/${cardId}`);
             if (response.ok) {
                 const result = await response.json();
                 setCardItems(result);
@@ -244,11 +235,10 @@ export default function Dashboard() {
         if (!newCardItem.trim() || !selectedItem) return;
 
         const token = localStorage.getItem('token');
-        const hostname = window.location.hostname;
         console.log(`[Dashboard] Adding item "${newCardItem}" for Card ID: ${selectedItem.id}`);
 
         try {
-            const response = await fetch(`http://${hostname}:3001/api/card-items`, {
+            const response = await fetch(`${API_URL}/api/card-items`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
