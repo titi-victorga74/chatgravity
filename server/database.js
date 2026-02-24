@@ -1,128 +1,127 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const mysql = require('mysql2');
 
-const dbPath = path.resolve(__dirname, 'database.sqlite');
-
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error opening database ' + dbPath + ': ' + err.message);
-    } else {
-        console.log('Connected to the SQLite database.');
-        db.run(`CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            password TEXT,
-            role TEXT DEFAULT 'user'
-        )`, (err) => {
-            if (err) {
-                console.error("Error creating users table: " + err.message);
-            } else {
-                // Insert default admin user if not exists (password: admin123)
-                // In a real app, passwords should be hashed. Here we will use bcrypt later.
-                // For simplicity now, let's just create the table. The initial admin will be created via seed or manually.
-            }
-        });
-
-        db.run(`CREATE TABLE IF NOT EXISTS data_entries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            content TEXT,
-            area TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )`, (err) => {
-            if (err) {
-                console.error("Error creating data_entries table: " + err.message);
-            }
-        });
-
-        db.run(`CREATE TABLE IF NOT EXISTS taquera_options (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE
-        )`, (err) => {
-            if (err) {
-                console.error("Error creating taquera_options table: " + err.message);
-            } else {
-                // Seed some initial options
-                db.all("SELECT count(*) as count FROM taquera_options", [], (err, rows) => {
-                    if (rows && rows[0].count === 0) {
-                        const initialOptions = ['Tacos al Pastor', 'Tacos de Asada', 'Gringas', 'Refrescos'];
-                        const stmt = db.prepare("INSERT INTO taquera_options (name) VALUES (?)");
-                        initialOptions.forEach(opt => stmt.run(opt));
-                        stmt.finalize();
-                        console.log("Seeded taquera_options");
-                    }
-                });
-            }
-        });
-
-        db.run(`CREATE TABLE IF NOT EXISTS taquera_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            card_id INTEGER,
-            quantity INTEGER,
-            status TEXT DEFAULT 'pending',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`, (err) => {
-            if (err) {
-                console.error("Error creating taquera_items table: " + err.message);
-            } else {
-                // Migration: Ensure status column exists (for existing tables)
-                db.run(`ALTER TABLE taquera_items ADD COLUMN status TEXT DEFAULT 'pending'`, (err) => { });
-
-                // Migration: Ensure card_id column exists
-                db.run(`ALTER TABLE taquera_items ADD COLUMN card_id INTEGER`, (err) => {
-                    // Ignore duplicate column error
-                });
-            }
-        });
-
-        db.run(`CREATE TABLE IF NOT EXISTS card_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            card_id INTEGER,
-            text TEXT,
-            user_id INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(card_id) REFERENCES data_entries(id),
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )`, (err) => {
-            if (err) {
-                console.error("Error creating card_items table: " + err.message);
-            } else {
-                console.log("Card items table ready");
-            }
-        });
-
-        db.run(`CREATE TABLE IF NOT EXISTS devoluciones_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            card_id INTEGER,
-            name TEXT,
-            quantity INTEGER DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(card_id) REFERENCES data_entries(id)
-        )`, (err) => {
-            if (err) {
-                console.error("Error creating devoluciones_items table: " + err.message);
-            } else {
-                console.log("Devoluciones items table ready");
-            }
-        });
-
-        db.run(`CREATE TABLE IF NOT EXISTS ruta_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            card_id INTEGER,
-            name TEXT,
-            quantity INTEGER DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(card_id) REFERENCES data_entries(id)
-        )`, (err) => {
-            if (err) {
-                console.error("Error creating ruta_items table: " + err.message);
-            } else {
-                console.log("Ruta items table ready");
-            }
-        });
-    }
+// Create a connection pool (better for production than single connection)
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'pos_system',
+    port: process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
-module.exports = db;
+// Test connection
+pool.getConnection((err, connection) => {
+    if (err) {
+        console.error('Error connecting to MySQL:', err.message);
+        return;
+    }
+    console.log('Connected to MySQL database.');
+    connection.release();
+
+    // Create tables
+    initDatabase();
+});
+
+function initDatabase() {
+    pool.query(`CREATE TABLE IF NOT EXISTS users (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        username VARCHAR(255) UNIQUE,
+        password VARCHAR(255),
+        role VARCHAR(50) DEFAULT 'user'
+    )`, (err) => {
+        if (err) console.error("Error creating users table:", err.message);
+    });
+
+    pool.query(`CREATE TABLE IF NOT EXISTS data_entries (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT,
+        content TEXT,
+        area VARCHAR(255),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )`, (err) => {
+        if (err) console.error("Error creating data_entries table:", err.message);
+    });
+
+    pool.query(`CREATE TABLE IF NOT EXISTS taquera_options (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) UNIQUE
+    )`, (err) => {
+        if (err) {
+            console.error("Error creating taquera_options table:", err.message);
+        } else {
+            // Seed initial options if table is empty
+            pool.query("SELECT count(*) as count FROM taquera_options", (err, rows) => {
+                if (rows && rows[0].count === 0) {
+                    const initialOptions = ['Tacos al Pastor', 'Tacos de Asada', 'Gringas', 'Refrescos'];
+                    initialOptions.forEach(opt => {
+                        pool.query("INSERT IGNORE INTO taquera_options (name) VALUES (?)", [opt]);
+                    });
+                    console.log("Seeded taquera_options");
+                }
+            });
+        }
+    });
+
+    pool.query(`CREATE TABLE IF NOT EXISTS taquera_items (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255),
+        card_id INT,
+        quantity INT,
+        status VARCHAR(50) DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, (err) => {
+        if (err) console.error("Error creating taquera_items table:", err.message);
+    });
+
+    pool.query(`CREATE TABLE IF NOT EXISTS card_items (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        card_id INT,
+        text TEXT,
+        user_id INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(card_id) REFERENCES data_entries(id),
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )`, (err) => {
+        if (err) {
+            console.error("Error creating card_items table:", err.message);
+        } else {
+            console.log("Card items table ready");
+        }
+    });
+
+    pool.query(`CREATE TABLE IF NOT EXISTS devoluciones_items (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        card_id INT,
+        name VARCHAR(255),
+        quantity INT DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(card_id) REFERENCES data_entries(id)
+    )`, (err) => {
+        if (err) {
+            console.error("Error creating devoluciones_items table:", err.message);
+        } else {
+            console.log("Devoluciones items table ready");
+        }
+    });
+
+    pool.query(`CREATE TABLE IF NOT EXISTS ruta_items (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        card_id INT,
+        name VARCHAR(255),
+        quantity INT DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(card_id) REFERENCES data_entries(id)
+    )`, (err) => {
+        if (err) {
+            console.error("Error creating ruta_items table:", err.message);
+        } else {
+            console.log("Ruta items table ready");
+        }
+    });
+}
+
+module.exports = pool;
